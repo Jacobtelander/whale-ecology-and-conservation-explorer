@@ -8,6 +8,12 @@ Built with **Python**, **Streamlit**, **Pandas**, **Plotly**, and **PyDeck**, us
 
 ---
 
+## 🚀 Live Demo
+
+https://whale-ecology-explorer.streamlit.app
+
+---
+
 ## Dashboard Preview
 
 ![Dashboard overview.png](images/Dashboard%20overview.png)
