@@ -10,15 +10,15 @@ Built with **Python**, **Streamlit**, **Pandas**, **Plotly**, and **PyDeck**, us
 
 ## Dashboard Preview
 
-![Dashboard overview.png](Images/Dashboard%20overview.png)
+![Dashboard overview.png](images/Dashboard%20overview.png)
 
 ### Interactive Observation Map
 
-![Interactive observation map.png](Images/Interactive%20observation%20map.png)
+![Interactive observation map.png](images/Interactive%20observation%20map.png)
 
 ### Comparative Ecology
 
-![Comparative ecology.png](Images/Comparative%20ecology.png)
+![Comparative ecology.png](images/Comparative%20ecology.png)
 
 ---
 

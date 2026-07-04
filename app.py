@@ -24,11 +24,11 @@ from src.species import show_species_info
 
 
 st.set_page_config(
-    page_title="Whale Migration Tracker",
+    page_title="Whale Ecology and Conservation Explorer",
     layout="wide"
 )
 
-st.title("🐋 Whale Migration Tracker")
+st.title("Whale Ecology and Conservation Explorer")
 
 st.markdown(
     """
@@ -37,11 +37,6 @@ st.markdown(
     This app focuses on ecological interpretation: seasonal patterns, latitudinal movement,
     observation bias, and conservation-relevant data limitations.
     """
-)
-
-st.info(
-    "Note: Observation timelines connect records in chronological order. "
-    "They should not be interpreted as exact movement paths of individual whales."
 )
 
 raw_df = load_data(DATA_PATH)
@@ -385,6 +380,11 @@ elif color_mode == "Species":
         unsafe_allow_html=True,
     )
 
+
+st.info(
+    "Note: Observation timelines connect records in chronological order. "
+    "They should not be interpreted as exact movement paths of individual whales."
+)
 
 
 with st.expander("Data quality and limitations"):
