@@ -10,7 +10,13 @@ from src.analysis import (
     create_observations_per_month_chart,
     create_observations_per_year_chart,
     create_season_chart,
+    create_species_comparison_summary,
+    create_monthly_species_comparison_chart,
+    create_species_latitude_comparison_chart,
+    build_comparative_ecological_findings,
+    build_observation_bias_assessment
 )
+
 from src.config import DATA_PATH, MAP_STYLES
 from src.data_processing import add_color_column, clean_observation_data, load_data
 from src.mapping import create_pydeck_map
@@ -44,7 +50,7 @@ data_quality = calculate_data_quality_summary(raw_df, df)
 
 st.sidebar.header("Controls")
 
-species_options = sorted(df["species"].dropna().unique())
+species_options = sorted(df["common_name"].dropna().unique())
 
 selected_species = st.sidebar.multiselect(
     "Choose whale species",
@@ -65,6 +71,7 @@ color_mode = st.sidebar.selectbox(
         "Year",
         "Season",
         "Month",
+        "Species"
     ],
     help="Change how observations are coloured on the map.",
 )
@@ -77,19 +84,13 @@ point_radius = st.sidebar.slider(
     step=5_000,
 )
 
-max_points = st.sidebar.slider(
-    "Max observations shown on map",
-    min_value=100,
-    max_value=5_000,
-    value=1_000,
-    step=100,
-)
+max_points = 10000
 
 if not selected_species:
     st.warning("Please select at least one whale species from the sidebar.")
     st.stop()
 
-filtered_df = df[df["species"].isin(selected_species)].copy()
+filtered_df = df[df["common_name"].isin(selected_species)].copy()
 
 min_year = int(filtered_df["year"].min())
 max_year = int(filtered_df["year"].max())
@@ -166,19 +167,59 @@ if len(map_df) > max_points:
 
 species_label = ", ".join(selected_species)
 total_distance_km = calculate_chronological_observation_distance(analysis_df)
+scientific_names = ", ".join(
+    sorted(analysis_df["species"].dropna().unique())
+)
 
 st.write(f"Showing observations for: {species_label}")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("Filtered observations", len(analysis_df))
-col2.metric("Shown on map", len(map_df))
-col3.metric("First observation", str(analysis_df["date"].min().date()))
-col4.metric("Last observation", str(analysis_df["date"].max().date()))
-col5.metric("Observation distance", f"{total_distance_km:,.0f} km")
+col2.metric("First observation", str(analysis_df["date"].min().date()))
+col3.metric("Last observation", str(analysis_df["date"].max().date()))
+col4.metric("Observation distance", f"{total_distance_km:,.0f} km")
 
 st.subheader("Conservation insights")
 for insight in build_conservation_insights(analysis_df):
     st.markdown(f"- {insight}")
+
+if len(selected_species) >= 2:
+     st.divider()
+     st.subheader("Comparative ecology")
+
+
+     comparison_df = create_species_comparison_summary(analysis_df)
+
+
+     st.dataframe(
+        comparison_df,
+        use_container_width=True,
+        hide_index=True,
+        )
+
+
+     st.plotly_chart(
+         create_monthly_species_comparison_chart(analysis_df),
+         width="stretch",
+     )
+
+
+     st.plotly_chart(
+         create_species_latitude_comparison_chart(analysis_df),
+         width="stretch",
+     )
+
+
+     st.subheader("Comparative ecological findings")
+
+     for finding in build_comparative_ecological_findings(analysis_df):
+         st.markdown(f"- {finding}")
+
+
+     st.subheader("Observation bias assessment")
+
+     for finding in build_observation_bias_assessment(analysis_df):
+        st.markdown(f"- {finding}")
 
 st.divider()
 
@@ -268,13 +309,16 @@ st.pydeck_chart(deck, use_container_width=True, height=750)
 if color_mode == "Season":
     st.markdown(
         """
-        **Map color legend**
+        **Season color legend**
 
-        🔵 **Winter** &nbsp;&nbsp;
-        🟢 **Spring** &nbsp;&nbsp;
-        🟡 **Summer** &nbsp;&nbsp;
-        🟣 **Autumn**
-        """
+        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:8px;">
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(70,130,255,0.8);"></span> Winter</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(80,220,120,0.8);"></span> Spring</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(255,190,60,0.8);"></span> Summer</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(220,100,255,0.8);"></span> Autumn</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 elif color_mode == "Month":
@@ -324,6 +368,24 @@ elif color_mode == "Year":
         """,
         unsafe_allow_html=True,
     )
+elif color_mode == "Species":
+    st.markdown(
+        """
+        **Species color legend**
+
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px;">
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(0,180,255,0.8);"></span> Humpback Whale</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(60,100,255,0.8);"></span> Blue Whale</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(255,160,60,0.8);"></span> Fin Whale</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(160,160,160,0.8);"></span> Gray Whale</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(180,80,255,0.8);"></span> Sperm Whale</div>
+            <div><span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:rgba(80,220,120,0.8);"></span> Minke Whale</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 
 with st.expander("Data quality and limitations"):
     st.write(

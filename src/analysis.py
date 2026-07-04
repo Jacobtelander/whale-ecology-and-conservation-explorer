@@ -144,6 +144,8 @@ def create_season_chart(data: pd.DataFrame, species_label: str):
     return fig
 
 
+
+
 def get_peak_observation_month(data: pd.DataFrame) -> str:
     """Return the month with the most observations."""
     if data.empty:
@@ -158,6 +160,8 @@ def get_latitude_range(data: pd.DataFrame) -> float:
     if data.empty:
         return 0
     return float(data["latitude"].max() - data["latitude"].min())
+
+
 
 
 def build_conservation_insights(data: pd.DataFrame) -> list[str]:
@@ -182,6 +186,7 @@ def build_conservation_insights(data: pd.DataFrame) -> list[str]:
     return insights
 
 
+
 def calculate_data_quality_summary(raw_data: pd.DataFrame, cleaned_data: pd.DataFrame) -> dict[str, float]:
     """Summarize how much data was removed during cleaning."""
     raw_count = len(raw_data)
@@ -195,3 +200,189 @@ def calculate_data_quality_summary(raw_data: pd.DataFrame, cleaned_data: pd.Data
         "removed_count": removed_count,
         "removed_percent": removed_percent,
     }
+
+
+
+
+def create_species_comparison_summary(data: pd.DataFrame) -> pd.DataFrame:
+    """Create summary statistics for comparing selected whale species."""
+    if data.empty:
+        return pd.DataFrame()
+
+    rows = []
+
+    for species, species_data in data.groupby("species"):
+        peak_month = get_peak_observation_month(species_data)
+        mean_latitude = species_data["latitude"].mean()
+        first_year = int(species_data["year"].min())
+        last_year = int(species_data["year"].max())
+        observation_count = len(species_data)
+
+        rows.append(
+            {
+                "Species": species_data["common_name"].iloc[0],
+                "Scientific name": species,
+                "Observations": observation_count,
+                "Peak month": peak_month,
+                "Mean latitude": f"{mean_latitude:.1f}°",
+                "Observation span": f"{first_year}–{last_year}",
+                "Latitude range": f"{get_latitude_range(species_data):.1f}°",
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+
+def create_monthly_species_comparison_chart(data: pd.DataFrame):
+    """Create a line chart comparing monthly observations between species."""
+    if data.empty:
+        return None
+
+    monthly_species = (
+        data
+        .groupby(["common_name", "month", "month_name"])
+        .size()
+        .reset_index(name="observations")
+        .sort_values("month")
+    )
+
+    fig = px.line(
+        monthly_species,
+        x="month_name",
+        y="observations",
+        color="common_name",
+        markers=True,
+        title="Monthly observation comparison by species",
+        labels={
+            "month_name": "Month",
+            "observations": "Number of observations",
+            "common_name": "Species",
+        },
+    )
+
+    fig.update_xaxes(categoryorder="array", categoryarray=MONTH_ORDER)
+    fig.update_layout(template="plotly_white", height=420)
+
+    return fig
+
+
+
+
+def create_species_latitude_comparison_chart(data: pd.DataFrame):
+    """Compare average latitude through the year for each species."""
+
+    monthly_latitude = (
+        data
+        .groupby(["common_name", "month", "month_name"])["latitude"]
+        .mean()
+        .reset_index()
+        .sort_values("month")
+    )
+
+    fig = px.line(
+        monthly_latitude,
+        x="month_name",
+        y="latitude",
+        color="common_name",
+        markers=True,
+        title="Average latitude throughout the year",
+        labels={
+            "month_name": "Month",
+            "latitude": "Mean latitude",
+            "common_name": "Species",
+        },
+    )
+
+    fig.update_xaxes(
+        categoryorder="array",
+        categoryarray=MONTH_ORDER,
+    )
+
+    fig.update_layout(
+        template="plotly_white",
+        height=420,
+    )
+
+    return fig
+
+
+
+def build_comparative_ecological_findings(data: pd.DataFrame) -> list[str]:
+    """Generate automatic ecological interpretation for selected species."""
+    if data.empty or data["common_name"].nunique() < 2:
+        return []
+
+    findings = []
+
+    species_counts = data.groupby("common_name").size()
+    most_observed = species_counts.idxmax()
+
+    mean_latitudes = data.groupby("common_name")["latitude"].mean()
+    northernmost_average = mean_latitudes.idxmax()
+    southernmost_average = mean_latitudes.idxmin()
+
+    latitude_ranges = (
+        data.groupby("common_name")["latitude"]
+        .agg(lambda x: x.max() - x.min())
+    )
+    widest_range = latitude_ranges.idxmax()
+
+    peak_months = (
+        data.groupby("common_name")
+        .apply(get_peak_observation_month)
+    )
+
+    findings.append(
+        f"{most_observed} has the highest number of observations in the selected dataset."
+    )
+    findings.append(
+        f"{northernmost_average} has the highest average observed latitude, while {southernmost_average} has the lowest."
+    )
+    findings.append(
+        f"{widest_range} shows the widest observed latitudinal range."
+    )
+    findings.append(
+        "Peak observation months differ between species, suggesting possible differences in seasonal movement patterns or observation effort."
+    )
+    findings.append(
+        "Comparisons are based on observation records, not confirmed individual migration tracks."
+    )
+
+    return findings
+
+
+
+
+def build_observation_bias_assessment(data: pd.DataFrame) -> list[str]:
+    """Generate a simple bias assessment for observation records."""
+    if data.empty:
+        return []
+
+    findings = []
+
+    yearly_counts = data.groupby("year").size()
+    median_year = int(data["year"].median())
+    peak_year = int(yearly_counts.idxmax())
+
+    early_records = len(data[data["year"] < 1990])
+    recent_records = len(data[data["year"] >= 1990])
+
+    if recent_records > early_records:
+        findings.append(
+            "Observation records are strongly concentrated after 1990, which likely reflects increased reporting and data digitisation."
+        )
+
+    findings.append(
+        f"The median observation year is {median_year}, and the highest number of records occurs in {peak_year}."
+    )
+
+    findings.append(
+        "Spatial hotspots may reflect research activity, whale-watching areas, shipping routes, or coastal accessibility rather than true whale abundance."
+    )
+
+    findings.append(
+        "These patterns should be interpreted as observation effort plus whale ecology, not whale ecology alone."
+    )
+
+    return findings

@@ -29,6 +29,17 @@ def add_map_color_column(data: pd.DataFrame, color_mode: str) -> pd.DataFrame:
             ]
         )
 
+    elif color_mode == "Species":
+        species_colors = {
+            "Humpback Whale": [0, 180, 255, 180],
+            "Blue Whale": [60, 100, 255, 180],
+            "Fin Whale": [255, 160, 60, 180],
+            "Gray Whale": [160, 160, 160, 180],
+            "Sperm Whale": [180, 80, 255, 180],
+            "Minke Whale": [80, 220, 120, 180],
+        }
+        colored["map_color"] = colored["common_name"].map(species_colors)
+
     else:
         colored["map_color"] = colored["color"]
 
@@ -107,7 +118,8 @@ def create_pydeck_map(
         initial_view_state=view_state,
         tooltip={
             "html": """
-            <b>Species:</b> {species}<br>
+            <b>Species:</b> {common_name}<br>
+            <b>Scientific name:</b> {species}<br>
             <b>Date:</b> {date_label}<br>
             <b>Year:</b> {year}<br>
             <b>Month:</b> {month}<br>
